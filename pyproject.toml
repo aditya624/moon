@@ -1,0 +1,35 @@
+[project]
+name = "moon"
+version = "0.1.0"
+description = "FastMCP-powered MCP server template"
+authors = [
+    { name = "aditya624", email = "adityaadit677@gmail.com" }
+]
+readme = "README.md"
+packages = [{ include = "moon" }]
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "fastmcp (>=2.0.0,<3.0.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)",
+    "qdrant-client (>=1.10.0,<2.0.0)",
+    "pydantic (>=2.7.0,<3.0.0)",
+    "pydantic-settings (>=2.3.0,<3.0.0)"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest (>=8.0.0,<9.0.0)"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["moon"]
+namespaces = false
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
