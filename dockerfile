@@ -16,11 +16,4 @@ COPY . .
 RUN python -m pip install --upgrade pip \
  && pip install --no-cache-dir .
 
-# environment default
-ENV APP_MODULE=moon.main:app \
-    HOST=0.0.0.0 \
-    PORT=8000
-
-EXPOSE 8000
-
-ENTRYPOINT ["/bin/sh", "-c", "uvicorn ${APP_MODULE} --host ${HOST} --port ${PORT:-8080}"]
+CMD ["python", "moon/main.py"]
