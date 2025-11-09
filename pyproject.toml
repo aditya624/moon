@@ -1,6 +1,6 @@
 [project]
 name = "moon"
-version = "0.1.0"
+version = "0.1.1"
 description = "FastMCP-powered MCP server template"
 authors = [
     { name = "aditya624", email = "adityaadit677@gmail.com" }
