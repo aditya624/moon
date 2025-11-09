@@ -4,10 +4,10 @@ import os
 
 load_dotenv()
 
-class GroqConfig(BaseModel):
-    api_key: str = os.getenv("GROQ_API_KEY", "")
-    timeout_s: int = int(os.getenv("GROQ_TIMEOUT_S", "300"))
-    max_iterations: int = int(os.getenv("GROQ_MAX_ITERATIONS", "6"))
+class MCPConfig(BaseModel):
+    mcp_transport: str = os.getenv("MCP_TRANSPORT", "streamable-http")
+    mcp_host: str = os.getenv("MCP_HOST", "0.0.0.0")
+    mcp_port: int = int(os.getenv("MCP_PORT", "8181"))
 
 class EmbeddingConfig(BaseModel):
     token: str = os.getenv("HF_TOKEN", "")
@@ -24,10 +24,9 @@ class Settings(BaseModel):
     app_name: str = os.getenv("APP_NAME", "moon")
     version: str = os.getenv("VERSION", "0.1.0")
     env: str = os.getenv("SERVICE_ENV", "local")
-    token: str = os.getenv("TOKEN", "kajsdasdkjhsdf")
     request_timeout_s: int = int(os.getenv("REQUEST_TIMEOUT_S", "350"))
-    
-    groq: GroqConfig = GroqConfig()
+
+    mcp: MCPConfig = MCPConfig()
     qdrant: QdrantConfig = QdrantConfig()
     embedding: EmbeddingConfig = EmbeddingConfig()
 

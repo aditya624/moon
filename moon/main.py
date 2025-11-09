@@ -2,11 +2,12 @@ from typing import Annotated
 from pydantic import Field
 from fastmcp import FastMCP
 from moon.tools.knowledge import Knowledge
+from moon.config import settings
 
-mcp = FastMCP("Knowledge 🚀")
+mcp_knowledge = FastMCP("Knowledge 🚀")
 knowledge = Knowledge()
 
-@mcp.tool(
+@mcp_knowledge.tool(
     name="get_knowledge",
     description="Search for knowledge",
 )
@@ -18,4 +19,4 @@ def get_knowledge(
     return context
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8181)
+    mcp_knowledge.run(transport=settings.mcp.mcp_transport, host=settings.mcp.mcp_host, port=settings.mcp.mcp_port)
