@@ -1,10 +1,11 @@
 # Moon MCP Server
 
-Moon MCP Server is a template project for building Model Context Protocol (MCP) backends using [FastMCP](https://github.com/fastmcp). It is packaged with Poetry, ships with a lightweight Dockerfile, and exposes a simple `ping` tool to verify connectivity.
+Moon MCP Server is a template project for building Model Context Protocol (MCP) backends using [FastMCP](https://github.com/fastmcp). It is packaged with Poetry, ships with a lightweight Dockerfile, and exposes a simple `ping` tool to verify connectivity. The MCP server retrieves context from a Qdrant vector database, making it easy to supply relevant information to your agents.
 
 ## Features
 
-- ✅ FastMCP-powered MCP server with a FastAPI integration
+- ✅ FastMCP-powered MCP server ready to run standalone
+- ✅ Retrieves contextual knowledge from a Qdrant vector database
 - ✅ Poetry project configuration targeting Python 3.11
 - ✅ Dockerfile ready for container deployments
 - ✅ Basic CI workflow (linting placeholder) for GitHub Actions
@@ -25,8 +26,17 @@ poetry install
 ### Running the server
 
 ```bash
-poetry run uvicorn moon.main:app --host 0.0.0.0 --port 8000
+poetry run python moon/main.py
 ```
+
+### Running with Docker
+
+```bash
+docker build -t moon-mcp .
+docker run --rm -p 8181:8181 moon-mcp
+```
+
+The Docker image runs `python moon/main.py`, matching the local execution flow. Configure `MCP_HOST`, `MCP_PORT`, and other environment variables as needed when running the container.
 
 ### Running tests
 
