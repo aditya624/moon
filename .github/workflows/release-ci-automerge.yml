@@ -1,0 +1,145 @@
+name: Release CI → Bump version → Auto-merge to main
+
+on:
+  push:
+    branches: [ release, develop ]
+    paths:
+      - '**/*.py'
+      - 'pyproject.toml'
+      - 'Dockerfile'
+      - '.github/workflows/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bump-version:
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+      bumped: ${{ steps.bump.outputs.bumped }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip if last commit already bump
+        id: skipcheck
+        shell: bash
+        run: |
+          if git log -1 --pretty=%s | grep -qi "bump version"; then
+            echo "already_bumped=true" >> $GITHUB_OUTPUT
+          else
+            echo "already_bumped=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump patch version in pyproject.toml
+        id: bump
+        if: steps.skipcheck.outputs.already_bumped == 'false'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re, pathlib
+          p = pathlib.Path("pyproject.toml")
+          text = p.read_text(encoding="utf-8")
+          m = re.search(r'(?m)^\s*version\s*=\s*"(\d+)\.(\d+)\.(\d+)"', text)
+          if not m:
+              raise SystemExit("Version not found (expected X.Y.Z)")
+          major, minor, patch = map(int, m.groups())
+          new = f"{major}.{minor}.{patch+1}"
+          new_text = re.sub(r'(?m)^\s*version\s*=\s*"\d+\.\d+\.\d+"',
+                            f'version = "{new}"', text, count=1)
+          p.write_text(new_text, encoding="utf-8")
+          print(f"new_version={new}")
+          PY
+          NEWV=$(grep -Eo 'version = "[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "new_version=$NEWV" >> $GITHUB_OUTPUT
+          echo "bumped=true" >> $GITHUB_OUTPUT
+
+      - name: Commit & push bump
+        if: steps.bump.outputs.bumped == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          git commit -m "chore(release): bump version to ${{ steps.bump.outputs.new_version }}"
+          git push origin release
+
+      - name: Pass through outputs when skipped
+        if: steps.skipcheck.outputs.already_bumped == 'true'
+        run: echo "bumped=false" >> $GITHUB_OUTPUT
+
+  build-test:
+    needs: bump-version
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: dummy/test:release-ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-test-develop:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: dummy/test:release-ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  open-pr-and-automerge:
+    needs: build-test
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create or find PR release → main
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          number=$(gh pr list --base main --head release --state open --json number --jq '.[0].number')
+          if [ -z "$number" ]; then
+            gh pr create --base main --head release \
+              --title "Release → main" \
+              --body "Auto PR from branch **release** to **main** after CI pass."
+            number=$(gh pr list --base main --head release --state open --json number --jq '.[0].number')
+          fi
+          echo "PR_NUMBER=$number" >> $GITHUB_ENV
+
+      - name: Enable auto-merge
+        if: env.PR_NUMBER != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "$PR_NUMBER" --merge --auto
