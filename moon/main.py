@@ -1,25 +1,21 @@
-"""Application entrypoint for the Moon MCP server."""
+from typing import Annotated
+from pydantic import Field
 from fastmcp import FastMCP
-from fastapi import FastAPI
+from moon.tools.knowledge import Knowledge
 
-from .api.router import router as api_router
-from .config import get_settings
-from .tools import register_tools
+mcp = FastMCP("Knowledge 🚀")
+knowledge = Knowledge()
 
+@mcp.tool(
+    name="get_knowledge",
+    description="Search for knowledge",
+)
+def get_knowledge(
+        query: Annotated[str, Field(description="The query to search for knowledge")]
+    ) -> str:
+    """Search for knowledge"""
+    context = knowledge.search(query)
+    return context
 
-def create_app() -> FastAPI:
-    """Create and configure the FastMCP application."""
-
-    settings = get_settings()
-    server = FastMCP(name=settings.app_name)
-    register_tools(server)
-
-    app = server.app
-    app.include_router(api_router, prefix="/api")
-    return app
-
-
-app = create_app()
-
-
-__all__ = ["app", "create_app"]
+if __name__ == "__main__":
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=8181)

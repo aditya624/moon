@@ -1,28 +1,34 @@
-"""Application configuration settings."""
-from functools import lru_cache
+from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
 
-from pydantic import Field
-from pydantic_settings import BaseSettings
+load_dotenv()
 
+class GroqConfig(BaseModel):
+    api_key: str = os.getenv("GROQ_API_KEY", "")
+    timeout_s: int = int(os.getenv("GROQ_TIMEOUT_S", "300"))
+    max_iterations: int = int(os.getenv("GROQ_MAX_ITERATIONS", "6"))
 
-class Settings(BaseSettings):
-    """Base application settings sourced from environment variables."""
+class EmbeddingConfig(BaseModel):
+    token: str = os.getenv("HF_TOKEN", "")
+    model: str = os.getenv("HF_MODEL", "BAAI/bge-m3")
+    timeout_s: int = int(os.getenv("EMBEDDING_TIMEOUT_S", "300"))
 
-    app_name: str = Field(default="Moon MCP Server", description="Service name")
-    host: str = Field(default="0.0.0.0", description="Host interface for the MCP server")
-    port: int = Field(default=8000, description="Port for the MCP server")
+class QdrantConfig(BaseModel):
+    url: str = os.getenv("QDRANT_URL", "https://657e9ff8-daa0-4003-bf76-c531e697932d.europe-west3-0.gcp.cloud.qdrant.io:6333")
+    api_key: str = os.getenv("QDRANT_API_KEY", "")
+    collection: str = os.getenv("QDRANT_COLLECTION", "internal_knowledge")
+    top_k: int = int(os.getenv("QDRANT_TOP_K", "10"))
 
-    model_config = {
-        "env_prefix": "MOON_",
-        "extra": "ignore",
-    }
+class Settings(BaseModel):
+    app_name: str = os.getenv("APP_NAME", "moon")
+    version: str = os.getenv("VERSION", "0.1.0")
+    env: str = os.getenv("SERVICE_ENV", "local")
+    token: str = os.getenv("TOKEN", "kajsdasdkjhsdf")
+    request_timeout_s: int = int(os.getenv("REQUEST_TIMEOUT_S", "350"))
+    
+    groq: GroqConfig = GroqConfig()
+    qdrant: QdrantConfig = QdrantConfig()
+    embedding: EmbeddingConfig = EmbeddingConfig()
 
-
-@lru_cache
-def get_settings() -> Settings:
-    """Return a cached instance of :class:`Settings`."""
-
-    return Settings()
-
-
-__all__ = ["Settings", "get_settings"]
+settings = Settings()
